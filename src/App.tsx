@@ -358,18 +358,19 @@ export default function App() {
                   <p className="text-3xl font-light italic">{state.settings.averagePeriodLength} дн.</p>
                 </div>
                 
-                <div className="pt-4 h-64 w-full">
+                <div className="pt-4 w-full">
                   <p className="text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40 mb-6 font-sans">История циклов и периодов</p>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { name: 'Март', cycle: 28, period: 5 },
-                        { name: 'Апр', cycle: 27, period: 6 },
-                        { name: 'Май', cycle: 29, period: 5 },
-                        { name: 'Июн', cycle: 28, period: 4 },
-                      ]}
-                      margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-                    >
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <BarChart
+                        data={[
+                          { name: 'Март', cycle: 28, period: 5 },
+                          { name: 'Апр', cycle: 27, period: 6 },
+                          { name: 'Май', cycle: 29, period: 5 },
+                          { name: 'Июн', cycle: 28, period: 4 },
+                        ]}
+                        margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+                      >
                       <XAxis 
                         dataKey="name" 
                         axisLine={false} 
@@ -406,14 +407,16 @@ export default function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+              </div>
 
-                <div className="pt-8 h-64 w-full">
+                <div className="pt-8 w-full">
                   <p className="text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40 mb-6 font-sans">Частота симптомов (последние 4 недели)</p>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={symptomData}
-                      margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-                    >
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <LineChart
+                        data={symptomData}
+                        margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+                      >
                       <XAxis 
                         dataKey="week" 
                         axisLine={false} 
@@ -452,6 +455,7 @@ export default function App() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+              </div>
 
                 <div className="pt-8 w-full">
                   <p className="text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40 mb-6 font-sans">Календарь настроения</p>
@@ -512,18 +516,19 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="pt-8 h-64 w-full">
+                <div className="pt-8 w-full">
                   <p className="text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40 mb-6 font-sans">Здоровье: Сон и Пульс</p>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { week: 'Н1', sleep: 7.2, hr: 68 },
-                        { week: 'Н2', sleep: 6.8, hr: 72 },
-                        { week: 'Н3', sleep: 7.5, hr: 69 },
-                        { week: 'Н4', sleep: 6.5, hr: 75 },
-                      ]}
-                      margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-                    >
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <BarChart
+                        data={[
+                          { week: 'Н1', sleep: 7.2, hr: 68 },
+                          { week: 'Н2', sleep: 6.8, hr: 72 },
+                          { week: 'Н3', sleep: 7.5, hr: 69 },
+                          { week: 'Н4', sleep: 6.5, hr: 75 },
+                        ]}
+                        margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+                      >
                       <XAxis 
                         dataKey="week" 
                         axisLine={false} 
@@ -549,16 +554,18 @@ export default function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+              </div>
 
-                <div className="pt-8 h-64 w-full">
+                <div className="pt-8 w-full">
                   <p className="text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40 mb-6 font-sans">Тренд веса (последние записи)</p>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={weightData.length > 0 ? weightData : [
-                        { date: '?', weight: state.logs[format(new Date(), 'yyyy-MM-dd')]?.weight || 60 }
-                      ]}
-                      margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-                    >
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <LineChart
+                        data={weightData.length > 0 ? weightData : [
+                          { date: '?', weight: state.logs[format(new Date(), 'yyyy-MM-dd')]?.weight || 60 }
+                        ]}
+                        margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+                      >
                       <XAxis 
                         dataKey="date" 
                         axisLine={false} 
@@ -594,6 +601,7 @@ export default function App() {
                     <p className="text-[10px] text-center opacity-30 mt-2">Нет данных о весе за последние 30 дней</p>
                   )}
                 </div>
+              </div>
 
                 <div className="pt-8 space-y-4">
                   <p className="text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40">Легенда</p>

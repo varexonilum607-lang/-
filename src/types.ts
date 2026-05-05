@@ -18,6 +18,7 @@ export interface UserSettings {
   averageCycleLength: number;
   averagePeriodLength: number;
   lastPeriodStart: string; // ISO string
+  birthDate?: string; // ISO string
   notifications: {
     periodStart: boolean;
     ovulationDay: boolean;

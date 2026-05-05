@@ -7,6 +7,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   averageCycleLength: 28,
   averagePeriodLength: 5,
   lastPeriodStart: format(new Date(), 'yyyy-MM-dd'),
+  birthDate: '1995-01-01',
   notifications: {
     periodStart: false,
     ovulationDay: false,
@@ -26,6 +27,9 @@ export const loadState = (): AppState => {
       }
       if (parsed.settings.wearableConnected === undefined) {
         parsed.settings.wearableConnected = DEFAULT_SETTINGS.wearableConnected;
+      }
+      if (!parsed.settings.birthDate) {
+        parsed.settings.birthDate = DEFAULT_SETTINGS.birthDate;
       }
       return parsed;
     } catch (e) {

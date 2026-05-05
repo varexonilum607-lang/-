@@ -33,7 +33,8 @@ import {
   Zap,
   Smile,
   Check,
-  Bell
+  Bell,
+  User as UserIcon
 } from 'lucide-react';
 import { 
   format, 
@@ -477,17 +478,18 @@ export default function App() {
                         const moodData = log?.mood ? moodMap[log.mood] : null;
 
                         return (
-                          <div 
+                          <button 
                             key={date} 
+                            onClick={() => setShowLogModal(date)}
                             className={cn(
-                              "aspect-square flex flex-col items-center justify-center border text-[10px] transition-all relative group",
-                              moodData ? moodData.color : "bg-white border-art-text/5 text-art-text/20"
+                              "aspect-square flex flex-col items-center justify-center border rounded-sm text-[10px] transition-all relative group cursor-pointer active:scale-90 hover:shadow-md hover:border-art-accent/50 hover:-translate-y-0.5",
+                              moodData ? moodData.color : "bg-white border-art-text/10 text-art-text/20 hover:text-art-text/60"
                             )}
                             title={`${date}${log?.mood ? `: ${log.mood}` : ''}`}
                           >
                             <span className="text-[8px] opacity-40 absolute top-1 left-1">{format(parseISO(date), 'd')}</span>
                             <span className="mt-1">{moodData?.icon || '·'}</span>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -736,11 +738,11 @@ function CalendarView({ state, onSelectDay, onTogglePeriod }: { state: AppState,
               key={dateStr}
               onClick={() => isEditing ? onTogglePeriod(dateStr) : onSelectDay(dateStr)}
               className={cn(
-                "h-10 relative flex items-center justify-center text-lg transition-all",
-                isToday(day) && "italic font-bold after:content-[''] after:absolute after:-bottom-1 after:w-1.5 after:h-1.5 after:bg-art-text after:rounded-full",
-                isPeriod ? "text-art-accent font-bold scale-110" : "text-art-text",
-                isPredicted && "text-art-accent/40",
-                isEditing && "hover:bg-art-text/5 rounded-full"
+                "h-12 w-full relative flex items-center justify-center text-lg transition-all rounded-xl hover:bg-art-accent/5 cursor-pointer active:scale-90 border border-transparent",
+                isToday(day) && "bg-art-text/5 border-art-text/10 italic font-bold after:content-[''] after:absolute after:bottom-1 after:w-1 after:h-1 after:bg-art-text after:rounded-full",
+                isPeriod ? "text-art-accent font-bold scale-105 border-art-accent/20 bg-art-accent/5" : "text-art-text",
+                isPredicted && "text-art-accent/40 border-dashed border-art-accent/20",
+                isEditing && "hover:bg-red-50 hover:border-red-100"
               )}
             >
               {format(day, 'd')}
@@ -1080,6 +1082,22 @@ function SettingsView({ settings, onUpdate }: { settings: UserSettings, onUpdate
               />
               <p className="text-[9px] font-sans uppercase opacity-30 mt-4 leading-relaxed tracking-wider">
                 Выберите первый день вашей последней менструации для точности прогнозов
+              </p>
+            </div>
+
+            <div className="bg-art-text/5 p-6 border border-art-text/10">
+              <div className="flex items-center gap-2 mb-4">
+                <UserIcon size={12} className="text-art-text/40" />
+                <label className="block text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40">Дата рождения</label>
+              </div>
+              <input 
+                type="date"
+                value={settings.birthDate}
+                onChange={(e) => onUpdate({ ...settings, birthDate: e.target.value })}
+                className="w-full bg-transparent border-b-2 border-art-text/10 py-2 text-2xl font-light focus:outline-none focus:border-art-accent transition-colors cursor-pointer"
+              />
+              <p className="text-[9px] font-sans uppercase opacity-30 mt-4 leading-relaxed tracking-wider">
+                Используется для персонализации рекомендаций и советов
               </p>
             </div>
           </div>

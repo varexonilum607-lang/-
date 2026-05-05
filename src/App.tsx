@@ -48,8 +48,10 @@ import {
   isSameDay, 
   isToday,
   addDays,
+  differenceInDays,
   parseISO,
-  startOfToday
+  startOfToday,
+  startOfDay
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { clsx, type ClassValue } from 'clsx';
@@ -137,6 +139,79 @@ export default function App() {
         if (log?.symptoms.includes('bloating')) bloating++;
       }
       return { week: weekLabel, cramps, fatigue, bloating };
+    });
+  }, [state.logs]);
+
+  const cycleHistoryData = useMemo(() => {
+    // Extract last 4 completed cycles
+    const logsArray = Object.values(state.logs) as DayLog[];
+    const periodDays = logsArray
+      .filter(log => log.isPeriod)
+      .map(log => log.date)
+      .sort();
+
+    const historicalStarts: Date[] = [];
+    if (periodDays.length > 0) {
+      let lastDay: Date | null = null;
+      periodDays.forEach(dateStr => {
+        const d = parseISO(dateStr);
+        if (!lastDay || differenceInDays(d, lastDay) > 1) {
+          historicalStarts.push(d);
+        }
+        lastDay = d;
+      });
+    }
+
+    const history = [];
+    for (let i = 1; i < historicalStarts.length; i++) {
+      const cycleLength = differenceInDays(historicalStarts[i], historicalStarts[i-1]);
+      // Approximate period length for that cycle
+      const periodLength = periodDays.filter(d => {
+        const date = parseISO(d);
+        return date >= historicalStarts[i-1] && date < historicalStarts[i];
+      }).length;
+
+      history.push({
+        name: format(historicalStarts[i-1], 'MMM', { locale: ru }),
+        cycle: cycleLength,
+        period: periodLength
+      });
+    }
+
+    return history.length > 0 ? history.slice(-4) : [
+      { name: 'Март', cycle: 28, period: 5 },
+      { name: 'Апр', cycle: 27, period: 6 },
+      { name: 'Май', cycle: 29, period: 5 },
+      { name: 'Июн', cycle: 28, period: 4 },
+    ];
+  }, [state.logs]);
+
+  const healthData = useMemo(() => {
+    return Array.from({ length: 4 }).map((_, i) => {
+      const weekLabel = `Н${i + 1}`;
+      let totalSleep = 0;
+      let totalHr = 0;
+      let sleepCount = 0;
+      let hrCount = 0;
+
+      for (let j = 0; j < 7; j++) {
+        const dateStr = format(addDays(new Date(), -27 + (i * 7) + j), 'yyyy-MM-dd');
+        const log = state.logs[dateStr];
+        if (log?.sleepHours) {
+          totalSleep += log.sleepHours;
+          sleepCount++;
+        }
+        if (log?.avgHeartRate) {
+          totalHr += log.avgHeartRate;
+          hrCount++;
+        }
+      }
+
+      return {
+        week: weekLabel,
+        sleep: sleepCount > 0 ? Number((totalSleep / sleepCount).toFixed(1)) : (7 + Math.random()),
+        hr: hrCount > 0 ? Math.round(totalHr / hrCount) : (65 + Math.round(Math.random() * 10))
+      };
     });
   }, [state.logs]);
 
@@ -363,12 +438,7 @@ export default function App() {
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <BarChart
-                        data={[
-                          { name: 'Март', cycle: 28, period: 5 },
-                          { name: 'Апр', cycle: 27, period: 6 },
-                          { name: 'Май', cycle: 29, period: 5 },
-                          { name: 'Июн', cycle: 28, period: 4 },
-                        ]}
+                        data={cycleHistoryData}
                         margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
                       >
                       <XAxis 
@@ -413,7 +483,7 @@ export default function App() {
                   <p className="text-[10px] font-sans font-bold uppercase tracking-art text-art-text/40 mb-6 font-sans">Частота симптомов (последние 4 недели)</p>
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                      <LineChart
+                      <BarChart
                         data={symptomData}
                         margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
                       >
@@ -429,6 +499,7 @@ export default function App() {
                         tick={{ fontSize: 10, fill: '#2D2926', opacity: 0.4 }} 
                       />
                       <Tooltip 
+                        cursor={{ fill: 'transparent' }}
                         contentStyle={{ 
                           backgroundColor: '#FDFBF7', 
                           border: '1px solid rgba(45, 41, 38, 0.1)', 
@@ -436,23 +507,19 @@ export default function App() {
                           borderRadius: '0px'
                         }}
                       />
-                      <Line 
-                        type="monotone" 
+                      <Bar 
                         dataKey="cramps" 
-                        stroke="#B16E5B" 
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: '#B16E5B', strokeWidth: 0 }}
+                        fill="#B16E5B" 
+                        radius={[2, 2, 0, 0]}
                         name="Спазмы"
                       />
-                      <Line 
-                        type="monotone" 
+                      <Bar 
                         dataKey="fatigue" 
-                        stroke="#6D7E5E" 
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: '#6D7E5E', strokeWidth: 0 }}
+                        fill="#6D7E5E" 
+                        radius={[2, 2, 0, 0]}
                         name="Усталость"
                       />
-                    </LineChart>
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -521,12 +588,7 @@ export default function App() {
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <BarChart
-                        data={[
-                          { week: 'Н1', sleep: 7.2, hr: 68 },
-                          { week: 'Н2', sleep: 6.8, hr: 72 },
-                          { week: 'Н3', sleep: 7.5, hr: 69 },
-                          { week: 'Н4', sleep: 6.5, hr: 75 },
-                        ]}
+                        data={healthData}
                         margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
                       >
                       <XAxis 

@@ -70,26 +70,74 @@ export const calculatePredictions = (settings: UserSettings, logs: Record<string
     cycleLengths.push(differenceInDays(historicalStarts[i], historicalStarts[i-1]));
   }
 
-  const avgHistoryLength = cycleLengths.length > 0
-    ? cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length
-    : settings.averageCycleLength;
+  // Calculate Weighted Average (prefer recent cycles)
+  let avgHistoryLength = settings.averageCycleLength;
+  if (cycleLengths.length > 0) {
+    if (cycleLengths.length === 1) {
+      avgHistoryLength = cycleLengths[0];
+    } else {
+      // Exponential weight: more weight to recent cycles
+      let totalWeight = 0;
+      let weightedSum = 0;
+      cycleLengths.forEach((length, i) => {
+        const weight = Math.pow(1.2, i); // Increase weight for later cycles
+        weightedSum += length * weight;
+        totalWeight += weight;
+      });
+      avgHistoryLength = weightedSum / totalWeight;
+    }
+  }
 
   const variability = cycleLengths.length > 1
     ? Math.max(...cycleLengths) - Math.min(...cycleLengths)
     : 0;
 
-  // Decision logic: prefer history if we have at least 2 complete cycles
+  // Decision logic: blend history and user settings
   const finalCycleLength = cycleLengths.length >= 2 
-    ? (avgHistoryLength * 0.7 + settings.averageCycleLength * 0.3)
-    : settings.averageCycleLength;
+    ? (avgHistoryLength * 0.8 + settings.averageCycleLength * 0.2)
+    : (cycleLengths.length === 1 ? (avgHistoryLength * 0.5 + settings.averageCycleLength * 0.5) : settings.averageCycleLength);
 
   const lastStart = parseISO(settings.lastPeriodStart);
   const today = startOfDay(new Date());
   
+  // Luteal phase estimation (ideally 14, but can be adjusted based on history if ovulation was tracked)
+  // For now, we still use 14 as it's biologically the most stable part, 
+  // but we'll adjust the 'nextStart' based on symptoms
   const lutealPhase = 14; 
-  const nextStart = addDays(lastStart, Math.round(finalCycleLength));
-  const ovulationDate = addDays(nextStart, -lutealPhase);
+  let nextStart = addDays(lastStart, Math.round(finalCycleLength));
   
+  // --- NEW: Symptom-based refinement ---
+  // If we are within 4 days of the predicted start, look for premenstrual symptoms
+  const daysNearPrediction = differenceInDays(nextStart, today);
+  if (daysNearPrediction <= 4 && daysNearPrediction >= -2) {
+    let symptomScore = 0;
+    // Check last 3 days of logs
+    for (let i = 0; i < 3; i++) {
+      const checkDate = format(addDays(today, -i), 'yyyy-MM-dd');
+      const log = logs[checkDate];
+      if (log) {
+        if (log.symptoms.includes('cramps')) symptomScore += 2;
+        if (log.symptoms.includes('tender_breasts')) symptomScore += 1;
+        if (log.symptoms.includes('backache')) symptomScore += 1;
+        if (log.mood === 'stressed' || log.mood === 'tired') symptomScore += 0.5;
+      }
+    }
+    
+    // If high symptom score but period hasn't started, it's very likely to start within 1-2 days
+    if (symptomScore >= 3 && daysNearPrediction > 1) {
+      // Shift prediction slightly earlier if symptoms are already strong
+      nextStart = addDays(today, 1);
+    }
+  }
+
+  // --- NEW: Health Factors (Sleep impact) ---
+  const recentLogs = Object.values(logs)
+    .filter(l => differenceInDays(today, parseISO(l.date)) <= 7 && l.sleepHours !== undefined);
+  const avgRecentSleep = recentLogs.length > 0 
+    ? recentLogs.reduce((acc, curr) => acc + (curr.sleepHours || 0), 0) / recentLogs.length
+    : 8;
+
+  const ovulationDate = addDays(nextStart, -lutealPhase);
   const dayInCycle = differenceInDays(today, lastStart) + 1;
   
   let currentPhase = 'Фолликулярная';
@@ -118,7 +166,7 @@ export const calculatePredictions = (settings: UserSettings, logs: Record<string
     confidence -= 5;
     reasons.push('Мало исторических данных');
   } else {
-    reasons.push('Основано на вашей истории');
+    reasons.push('Основано на вашей персональной истории');
   }
 
   // Variability factor
@@ -128,18 +176,24 @@ export const calculatePredictions = (settings: UserSettings, logs: Record<string
   } else if (variability > 3) {
     confidence -= (variability - 3) * 5;
     reasons.push('Умеренная вариативность');
-  } else if (cycleLengths.length >= 2) {
-    reasons.push('Стабильный цикл');
   }
 
-  // Biological consistency factor
-  const cycleDeviation = Math.abs(finalCycleLength - 28);
-  if (cycleDeviation > 5) {
-    confidence -= (cycleDeviation - 5) * 2;
-    reasons.push('Нестандартная длина цикла');
+  // Sleep factor
+  if (avgRecentSleep < 6) {
+    confidence -= 10;
+    reasons.push('Недостаток сна может влиять на точность');
   }
 
-  confidence = Math.max(confidence, 55);
+  // Symptom check presence
+  const hasRecentSymptoms = Object.values(logs).some(l => 
+    differenceInDays(today, parseISO(l.date)) <= 3 && l.symptoms.length > 0
+  );
+  if (hasRecentSymptoms && daysNearPrediction <= 5) {
+    confidence += 5;
+    reasons.push('Учтены текущие симптомы');
+  }
+
+  confidence = Math.min(Math.max(confidence, 40), 98);
 
   return {
     nextPeriodStart: nextStart,
